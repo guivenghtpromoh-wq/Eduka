@@ -1,0 +1,6 @@
+{
+  "name": "EDUKA",
+  "description": "Plateforme professionnelle de gestion scolaire multi-établissements avec architecture offline-first, gestion académique et financière.",
+  "requestFramePermissions": ["camera", "microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
