@@ -150,7 +150,7 @@ export const FinanceView: React.FC<FinanceViewProps> = ({
       referenceNumber: paymentForm.reference || `REF-${Date.now().toString().slice(-6)}`,
       paidAt: new Date().toISOString(),
       receivedByUserId: auth.getCurrentUser().id,
-      notes: paymentForm.notes || undefined,
+      notes: paymentForm.note || undefined,
     };
 
     db.addPayment(newPayment);
@@ -391,7 +391,7 @@ export const FinanceView: React.FC<FinanceViewProps> = ({
                       {pay.receiptNumber}
                     </td>
                     <td className="py-3 px-4 text-slate-600">
-                      {new Date(pay.paymentDate).toLocaleDateString()} {new Date(pay.paymentDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {new Date(pay.paidAt).toLocaleDateString()} {new Date(pay.paidAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </td>
                     <td className="py-3 px-4 font-semibold text-[#17201D]">
                       {pay.studentName}
@@ -403,7 +403,7 @@ export const FinanceView: React.FC<FinanceViewProps> = ({
                       {formatCurrency(pay.amount, pay.currency)}
                     </td>
                     <td className="py-3 px-4 text-slate-600">
-                      {pay.collectorName}
+                      {pay.receivedByUserId || 'Caisse Général'}
                     </td>
                     <td className="py-3 px-4 text-right">
                       <button
@@ -503,7 +503,7 @@ export const FinanceView: React.FC<FinanceViewProps> = ({
                     <option value="moncash">MonCash</option>
                     <option value="natcash">Natcash</option>
                     <option value="bank_transfer">Virement Bancaire (SOGEBANK / BNC)</option>
-                    <option value="check">Chèque certifié</option>
+                    <option value="card">Carte bancaire</option>
                   </select>
                 </div>
                 <div>
@@ -588,7 +588,7 @@ export const FinanceView: React.FC<FinanceViewProps> = ({
                 <div className="text-right">
                   <div className="font-mono font-bold text-sm text-[#075B46]">{selectedReceipt.receiptNumber}</div>
                   <div className="text-[10px] text-slate-500">
-                    {new Date(selectedReceipt.paymentDate).toLocaleDateString()}
+                    {new Date(selectedReceipt.paidAt).toLocaleDateString()}
                   </div>
                 </div>
               </div>
@@ -629,7 +629,7 @@ export const FinanceView: React.FC<FinanceViewProps> = ({
                 <div>
                   <span className="text-slate-500 block">Cachet & Signature de la Caisse</span>
                   <div className="h-10 border-b border-dotted border-slate-400 mt-2 flex items-center justify-center text-[10px] font-semibold text-[#075B46]">
-                    {selectedReceipt.collectorName}
+                    {selectedReceipt.receivedByUserId || 'Service Comptabilité'}
                   </div>
                 </div>
               </div>
