@@ -1,24 +1,18 @@
 /**
  * EDUKA - Institutional Topbar
- * Displays active school branch, academic year, global search trigger,
- * network/offline sync state, language selector, role switcher and user profile.
  */
 
 import React, { useState } from 'react';
 import {
   Building2,
-  Calendar,
   Search,
-  Bell,
   Globe,
-  UserCheck,
   ChevronDown,
   ShieldCheck,
   Menu,
   LogOut
 } from 'lucide-react';
-import { School, User, UserRole } from '../../types';
-import { auth } from '../../services/auth';
+import { School, User } from '../../types';
 import { Locale } from '../../services/i18n';
 import { NetworkStatus } from '../../services/sync';
 import { NetworkSyncIndicator } from './UIStates';
@@ -29,8 +23,6 @@ interface NavbarProps {
   onSelectSchool?: (schoolId: string) => void;
   onSchoolChange?: (school: School) => void;
   currentUser: User;
-  onSwitchRole?: (role: UserRole) => void;
-  onUserChange?: (user: User) => void;
   currentLocale: Locale;
   onSelectLocale?: (locale: Locale) => void;
   onLocaleChange?: (locale: Locale) => void;
@@ -49,8 +41,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   onSelectSchool,
   onSchoolChange,
   currentUser,
-  onSwitchRole,
-  onUserChange,
   currentLocale,
   onSelectLocale,
   onLocaleChange,
@@ -65,7 +55,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [showSchoolDropdown, setShowSchoolDropdown] = useState(false);
   const [showRoleDropdown, setShowRoleDropdown] = useState(false);
   const [showLangDropdown, setShowLangDropdown] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
 
   const activeQueueCount = syncQueueCount ?? pendingSyncCount ?? 0;
 
@@ -80,26 +69,6 @@ export const Navbar: React.FC<NavbarProps> = ({
     onLocaleChange?.(locale);
     setShowLangDropdown(false);
   };
-
-  const handleSelectRole = (role: UserRole) => {
-    onSwitchRole?.(role);
-    if (onUserChange) {
-      auth.switchRole(role);
-      onUserChange(auth.getCurrentUser());
-    }
-    setShowRoleDropdown(false);
-  };
-
-  const rolesList: { id: UserRole; label: string }[] = [
-    { id: 'admin', label: 'Administrateur Système' },
-    { id: 'direction', label: 'Direction Académique' },
-    { id: 'enseignant', label: 'Professeur / Enseignant' },
-    { id: 'comptable', label: 'Service Comptabilité' },
-    { id: 'secretaire', label: 'Secrétariat Général' },
-    { id: 'parent', label: 'Parent d\'élève (Tuteur)' },
-    { id: 'eleve', label: 'Compte Élève' },
-    { id: 'super_admin', label: 'Super Administrateur Réseau' }
-  ];
 
   return (
     <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs select-none">
@@ -175,10 +144,9 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
         </div>
 
-        {/* Right: Actions, Sync, Language, Role Switcher */}
+        {/* Right: Actions, Sync, Language, User Menu */}
         <div className="flex items-center space-x-1.5 sm:space-x-3">
           
-          {/* Mobile search button */}
           <button
             type="button"
             onClick={() => onOpenSearch?.()}
@@ -188,7 +156,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             <Search className="w-4 h-4" />
           </button>
 
-          {/* Network & Offline Status Indicator */}
           <NetworkSyncIndicator
             status={networkStatus}
             queueCount={activeQueueCount}
@@ -234,13 +201,12 @@ export const Navbar: React.FC<NavbarProps> = ({
             )}
           </div>
 
-          {/* Quick Role Switcher (Crucial for multi-role platform evaluation) */}
+          {/* Authenticated User Menu */}
           <div className="relative">
             <button
               type="button"
               onClick={() => setShowRoleDropdown(!showRoleDropdown)}
               className="flex items-center gap-2 pl-2 pr-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 transition-colors text-left text-xs"
-              title="Changer de rôle pour tester les permissions réelles"
             >
               <div className="w-6 h-6 rounded-full bg-[#075B46] text-white flex items-center justify-center font-bold text-[10px]">
                 {currentUser.firstName.charAt(0)}{currentUser.lastName.charAt(0)}
@@ -268,24 +234,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                     <span>MFA Activée • Session Sécurisée</span>
                   </div>
                 </div>
-
-                <div className="px-3 pt-2 pb-1 text-[10px] font-semibold text-[#66736D] uppercase tracking-wider">
-                  Tester un autre rôle (RBAC)
-                </div>
-
-                {rolesList.map(r => (
-                  <button
-                    key={r.id}
-                    type="button"
-                    onClick={() => handleSelectRole(r.id)}
-                    className={`w-full text-left px-3 py-1.5 text-xs flex items-center justify-between hover:bg-slate-50 transition-colors ${
-                      r.id === currentUser.role ? 'font-semibold text-[#075B46] bg-[#DDF3EA]/50' : 'text-slate-700'
-                    }`}
-                  >
-                    <span>{r.label}</span>
-                    {r.id === currentUser.role && <UserCheck className="w-3.5 h-3.5 text-[#075B46]" />}
-                  </button>
-                ))}
 
                 {onLogout && (
                   <div className="pt-1.5 mt-1.5 border-t border-slate-100">
