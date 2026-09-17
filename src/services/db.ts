@@ -1160,7 +1160,7 @@ class DatabaseEngine {
     return schoolId ? list.filter(m => m.schoolId === schoolId) : list;
   }
 
-  addMessage(msg: MessageItem): void {
+  addSystemMessage(msg: MessageItem): void {
     const list = this.getMessages();
     list.unshift(msg);
     this.set('messages', list);

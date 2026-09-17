@@ -1,12 +1,6 @@
-/**
- * EDUKA - Authentication & Authorization Client Service
- * Interacts directly with the production Express API backend.
- */
+import { Request, Response, NextFunction } from 'express';
 
-import { User, UserRole, Permission } from '../types';
-import { apiClient } from './apiClient';
-
-export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
+const ROLE_PERMISSIONS: Record<string, string[]> = {
   super_admin: [
     'students.read', 'students.create', 'students.update', 'students.archive', 'students.export',
     'teachers.read', 'teachers.manage', 'classes.read', 'classes.manage',
@@ -63,101 +57,48 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   ]
 };
 
-const DEFAULT_AUTHENTICATED_USER: User = {
-  id: 'usr-admin',
-  email: 'admin@polycarpe.eduka.ht',
-  firstName: 'Jean-Baptiste',
-  lastName: 'Salnave',
-  role: 'admin',
-  organizationId: 'org-saint-marc',
-  schoolId: 'school-polycarpe',
-  phone: '+509 3700-0001',
-  mfaEnabled: true,
-  status: 'active',
-  lastLoginAt: new Date().toISOString(),
-  createdAt: '2023-08-01T00:00:00Z',
-};
+export function requirePermission(permission: string) {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    if (!req.user) {
+      res.status(401).json({ error: { code: 'UNAUTHORIZED', message: 'Authentification requise.' } });
+      return;
+    }
 
-export interface LoginResult {
-  token?: string;
-  user?: User;
-  mfaRequired?: boolean;
+    const userRole = req.user.role;
+    const allowedPermissions = ROLE_PERMISSIONS[userRole] || [];
+
+    if (!allowedPermissions.includes(permission)) {
+      res.status(403).json({
+        error: {
+          code: 'FORBIDDEN',
+          message: `Permission refusée: '${permission}' est requis pour cette action.`,
+        },
+      });
+      return;
+    }
+
+    next();
+  };
 }
 
-class AuthService {
-  private currentUser: User = DEFAULT_AUTHENTICATED_USER;
-  private listeners: Array<(user: User) => void> = [];
-
-  constructor() {
-    this.fetchCurrentUser();
+export function enforceTenantIsolation(req: Request, res: Response, next: NextFunction): void {
+  if (!req.user) {
+    res.status(401).json({ error: { code: 'UNAUTHORIZED', message: 'Authentification requise.' } });
+    return;
   }
 
-  async login(email: string, password: string, codeMfa?: string): Promise<LoginResult> {
-    const res = await apiClient.post<LoginResult>('/auth/login', {
-      email,
-      password,
-      codeMfa,
+  // School tenant constraint
+  const requestedSchoolId = (req.params.schoolId || req.query.schoolId || req.body.schoolId) as string | undefined;
+
+  if (requestedSchoolId && req.user.role !== 'super_admin' && requestedSchoolId !== req.user.schoolId) {
+    res.status(403).json({
+      error: {
+        code: 'CROSS_TENANT_VIOLATION',
+        message: 'Accès inter-établissement interdit. Violation de tenant détectée.',
+      },
     });
-
-    if (res.user) {
-      this.currentUser = res.user;
-      this.notify();
-    }
-
-    return res;
+    return;
   }
 
-  async fetchCurrentUser(): Promise<User> {
-    try {
-      const res = await apiClient.get<{ user: User }>('/auth/me');
-      if (res && res.user) {
-        this.currentUser = res.user;
-        this.notify();
-      }
-    } catch {
-      // Fallback if initial local session
-    }
-    return this.currentUser;
-  }
-
-  getCurrentUser(): User {
-    return this.currentUser;
-  }
-
-  setCurrentUser(user: User): void {
-    this.currentUser = user;
-    this.notify();
-  }
-
-  hasRole(roles: UserRole | UserRole[]): boolean {
-    const list = Array.isArray(roles) ? roles : [roles];
-    return list.includes(this.currentUser.role);
-  }
-
-  hasPermission(permission: Permission): boolean {
-    const userRole = this.currentUser.role;
-    const permissions = ROLE_PERMISSIONS[userRole] || [];
-    return permissions.includes(permission);
-  }
-
-  async logout(): Promise<void> {
-    try {
-      await apiClient.post('/auth/logout');
-    } catch {
-      // Ignore logout network errors
-    }
-  }
-
-  subscribe(listener: (user: User) => void): () => void {
-    this.listeners.push(listener);
-    return () => {
-      this.listeners = this.listeners.filter(l => l !== listener);
-    };
-  }
-
-  private notify(): void {
-    this.listeners.forEach(l => l(this.currentUser));
-  }
+  next();
 }
-
-export const auth = new AuthService();

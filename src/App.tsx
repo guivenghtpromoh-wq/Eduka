@@ -1,7 +1,5 @@
 /**
  * EDUKA - Enterprise Multi-Tenant School Management Platform
- * Offline-First Architecture • Strict Granular RBAC • Multi-Currency (HTG/USD)
- * STRICTLY ZERO EMOJIS: Pure Lucide institutional iconography.
  */
 
 import React, { useState, useEffect } from 'react';
@@ -82,11 +80,10 @@ export default function App() {
     };
   }, []);
 
-  // Handle Switch User (RBAC tester)
+  // Handle Switch User
   const handleUserChange = (user: User) => {
     auth.setCurrentUser(user);
     setCurrentUser(user);
-    // Reset to dashboard upon switching role
     setActiveTab('dashboard');
   };
 
@@ -152,12 +149,13 @@ export default function App() {
   };
 
   const handleLogout = () => {
+    auth.logout();
     setIsAuthenticated(false);
     sessionStorage.removeItem('eduka_authenticated');
     setActiveTab('dashboard');
   };
 
-  // If user is not yet logged in, present official Connexion screen (Panel 1)
+  // If user is not yet logged in, present official Connexion screen
   if (!isAuthenticated) {
     return <AuthLoginView onLoginSuccess={handleLoginSuccess} />;
   }
@@ -175,11 +173,6 @@ export default function App() {
           if (s) handleSchoolChange(s);
         }}
         currentUser={currentUser}
-        onUserChange={handleUserChange}
-        onSwitchRole={(role) => {
-          auth.switchRole(role);
-          handleUserChange(auth.getCurrentUser());
-        }}
         currentLocale={currentLocale}
         onLocaleChange={setCurrentLocale}
         onSelectLocale={setCurrentLocale}
